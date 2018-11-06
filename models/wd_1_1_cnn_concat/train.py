@@ -71,7 +71,7 @@ def valid_epoch(data_path, sess, model):
     _costs = 0.0
     predict_labels_list = list()  # 所有的预测结果
     marked_labels_list = list()
-    for i in xrange(n_va_batches):
+    for i in range(n_va_batches):
         [X1_batch, X2_batch, y_batch] = get_batch(data_path, i)
         marked_labels_list.extend(y_batch)
         y_batch = to_categorical(y_batch)
@@ -94,7 +94,7 @@ def train_epoch(data_path, sess, model, train_fetches, valid_fetches, train_writ
     global lr
     time0 = time.time()
     batch_indexs = np.random.permutation(n_tr_batches)  # shuffle the training data
-    for batch in tqdm(xrange(n_tr_batches)):
+    for batch in tqdm(range(n_tr_batches)):
         global_step = sess.run(model.global_step)
         if 0 == (global_step + 1) % FLAGS.valid_step:
             valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
@@ -187,7 +187,7 @@ def main(_):
         print('3.Begin training...')
         print('max_epoch=%d, max_max_epoch=%d' % (FLAGS.max_epoch, FLAGS.max_max_epoch))
         train_op = train_op2
-        for epoch in xrange(FLAGS.max_max_epoch):
+        for epoch in range(FLAGS.max_max_epoch):
             global_step = sess.run(model.global_step)
             print('Global step %d, lr=%g' % (global_step, sess.run(learning_rate)))
             if epoch == FLAGS.max_epoch:  # update the embedding
