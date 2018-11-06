@@ -1,23 +1,20 @@
-# 2017 知乎看山杯 多标签文本分类
-比赛总结： [2017知乎看山杯总结(多标签文本分类)](http://blog.csdn.net/Jerr__y/article/details/77751885)
 ## 1.运行环境
 下面是我实验中的一些环境依赖，版本只提供参考。
 
 |环境/库|版本|
 |:---------:|----------|
-|Ubuntu|14.04.5 LTS|
-|python|2.7.12|
+|conda|4.5.4|
 |jupyter notebook|4.2.3|
-|tensorflow-gpu|1.2.1|
-|numpy|1.12.1|
-|pandas|0.19.2|
-|matplotlib|2.0.0|
-|word2vec|0.9.1|
+|tensorflow|1.7.0|
+|numpy|1.14.0|
+|pandas|0.23.1|
+|matplotlib|1.5.3|
+|word2vec|0.9.4|
 |tqdm|4.11.2|
 
 ## 2.文件结构
 
-|- zhihu-text-classification<br/>
+|- text-classification<br/>
 |　　|- raw_data　　　　　　　　　# 比赛提供的原始数据<br/>
 |　　|- data　　　　　　　　　　　# 预处理得到的数据<br/>
 |　　|- data_process　　　　　　　# 数据预处理代码<br/>
