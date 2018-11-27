@@ -58,7 +58,7 @@ def local_predict(sess, model):
     predict_labels_list = list()  # 所有的预测结果
     marked_labels_list = list()
     predict_scores = list()
-    for i in tqdm(xrange(n_va_batches)):
+    for i in tqdm(range(n_va_batches)):
         [X1_batch, X2_batch, y_batch] = get_batch(i)
         marked_labels_list.extend(y_batch)
         _batch_size = len(X1_batch)
@@ -83,7 +83,7 @@ def predict(sess, model):
     """Test on the test data."""
     time0 = time.time()
     predict_scores = list()
-    for i in tqdm(xrange(n_te_batches)):
+    for i in tqdm(range(n_te_batches)):
         [X1_batch, X2_batch] = get_test_batch(i)
         _batch_size = len(X1_batch)
         fetches = [model.y_pred]
