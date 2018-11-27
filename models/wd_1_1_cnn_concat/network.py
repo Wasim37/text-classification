@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import tensorflow as tf
+import time
 
 """wd_1_1_cnn_concat
 title 部分使用 TextCNN；content 部分使用 TextCNN； 两部分输出直接 concat。
@@ -37,7 +38,7 @@ class TextCNN(object):
         self.n_class = settings.n_class
         self.fc_hidden_size = settings.fc_hidden_size
         self._global_step = tf.Variable(0, trainable=False, name='Global_Step')
-        self.update_emas = list()
+        self.update_emas = list() 
         # placeholders
         self._tst = tf.placeholder(tf.bool)
         self._keep_prob = tf.placeholder(tf.float32, [])
@@ -48,9 +49,14 @@ class TextCNN(object):
             self._X2_inputs = tf.placeholder(tf.int64, [None, self.content_len], name='X2_inputs')
             self._y_inputs = tf.placeholder(tf.float32, [None, self.n_class], name='y_input')
 
+
         with tf.variable_scope('embedding'):
+            starttime = time.time()         
             self.embedding = tf.get_variable(name='embedding', shape=W_embedding.shape,
                                              initializer=tf.constant_initializer(W_embedding), trainable=True)
+            endtime = time.time()
+            print('加载词向量耗时%d秒' % (endtime-starttime))  
+            
         self.embedding_size = W_embedding.shape[1]
 
         with tf.variable_scope('cnn_text'):

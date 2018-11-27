@@ -41,9 +41,9 @@ summary_path = settings.summary_path
 ckpt_path = settings.ckpt_path
 model_path = ckpt_path + 'model.ckpt'
 
-embedding_path = '../../data/word_embedding.npy'
-data_train_path = '../../data/wd-data/data_train/'
-data_valid_path = '../../data/wd-data/data_valid/'
+embedding_path = 'data/word_embedding.npy'
+data_train_path = 'data/wd-data/data_train/'
+data_valid_path = 'data/wd-data/data_valid/'
 tr_batches = os.listdir(data_train_path)  # batch 文件名列表
 va_batches = os.listdir(data_valid_path)
 n_tr_batches = len(tr_batches)
@@ -140,7 +140,7 @@ def main(_):
         os.makedirs(summary_path)
 
     print('1.Loading data...')
-    W_embedding = np.load(embedding_path)
+    W_embedding = np.load(embedding_path) # shape (411722, 256)
     print('training sample_num = %d' % n_tr_batches)
     print('valid sample_num = %d' % n_va_batches)
 
@@ -166,6 +166,24 @@ def main(_):
                 optimizer2 = tf.train.AdamOptimizer(learning_rate=learning_rate)
                 train_op2 = optimizer2.apply_gradients(zip(grads2, tvars2),
                                                    global_step=model.global_step)
+            
+            # model.update_emas:
+            # [<tf.Operation 'cnn_text/conv-maxpool-2/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-3/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-4/ExponentialMovingAverage' type=NoOp>,
+            # <tf.Operation 'cnn_text/conv-maxpool-5/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-7/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-2/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-3/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-4/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-5/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-7/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'fc-bn-layer/ExponentialMovingAverage' type=NoOp>]
+            #
+            #
+            # tf.group()返回的是个操作，而不是值. https://blog.csdn.net/LoseInVain/article/details/81703786
+            # <tf.Operation 'training_ops/group_deps' type=NoOp>
+
             update_op = tf.group(*model.update_emas)
             merged = tf.summary.merge_all()  # summary
             train_writer = tf.summary.FileWriter(summary_path + 'train', sess.graph)
