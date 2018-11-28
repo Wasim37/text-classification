@@ -22,15 +22,16 @@ flags.DEFINE_integer('max_max_epoch', 6, 'all training epoches, default: 6')
 flags.DEFINE_float('lr', 1e-3, 'initial learning rate, default: 1e-3')
 flags.DEFINE_float('decay_rate', 0.65, 'decay rate, default: 0.65')
 flags.DEFINE_float('keep_prob', 0.5, 'keep_prob for training, default: 0.5')
+
 # 正式
-flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
-flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
-flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
+#flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
+#flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
+#flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
 
 # 测试
-# flags.DEFINE_integer('decay_step', 1000, 'decay_step, default: 1000')
-# flags.DEFINE_integer('valid_step', 500, 'valid_step, default: 500')
-# flags.DEFINE_float('last_f1', 0.10, 'if valid_f1 > last_f1, save new model. default: 0.10')
+flags.DEFINE_integer('decay_step', 1000, 'decay_step, default: 1000')
+flags.DEFINE_integer('valid_step', 500, 'valid_step, default: 500')
+flags.DEFINE_float('last_f1', 0.0010, 'if valid_f1 > last_f1, save new model. default: 0.0010')
 FLAGS = flags.FLAGS
 
 lr = FLAGS.lr
@@ -41,9 +42,9 @@ summary_path = settings.summary_path
 ckpt_path = settings.ckpt_path
 model_path = ckpt_path + 'model.ckpt'
 
-embedding_path = 'data/word_embedding.npy'
-data_train_path = 'data/wd-data/data_train/'
-data_valid_path = 'data/wd-data/data_valid/'
+embedding_path = '../../data/word_embedding.npy'
+data_train_path = '../../data/wd-data/data_train/'
+data_valid_path = '../../data/wd-data/data_valid/'
 tr_batches = os.listdir(data_train_path)  # batch 文件名列表
 va_batches = os.listdir(data_valid_path)
 n_tr_batches = len(tr_batches)
@@ -214,6 +215,11 @@ def main(_):
             train_fetches = [merged, model.loss, train_op, update_op]
             valid_fetches = [merged, model.loss]
             train_epoch(data_train_path, sess, model, train_fetches, valid_fetches, train_writer, test_writer)
+            
+            valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
+            print('Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (
+                sess.run(model.global_step), valid_cost, precision, recall, f1))            
+            
         # 最后再做一次验证
         valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
         print('END.Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (

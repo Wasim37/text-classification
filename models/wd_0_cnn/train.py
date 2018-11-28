@@ -17,20 +17,21 @@ from evaluator import score_eval
 
 flags = tf.flags
 flags.DEFINE_bool('is_retrain', False, 'if is_retrain is true, not rebuild the summary')
-flags.DEFINE_integer('max_epoch', 1, 'update the embedding after max_epoch, default: 1')
+flags.DEFINE_integer('max_epoch', 1, 'update the embedding after max_epoch, default: 6')
 flags.DEFINE_integer('max_max_epoch', 6, 'all training epoches, default: 6')
-flags.DEFINE_float('lr', 8e-4, 'initial learning rate, default: 8e-4')
-flags.DEFINE_float('decay_rate', 0.75, 'decay rate, default: 0.75')
+flags.DEFINE_float('lr', 1e-3, 'initial learning rate, default: 1e-3')
+flags.DEFINE_float('decay_rate', 0.65, 'decay rate, default: 0.65')
 flags.DEFINE_float('keep_prob', 0.5, 'keep_prob for training, default: 0.5')
+
 # 正式
-# flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
-# flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
-# flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
+#flags.DEFINE_integer('decay_step', 15000, 'decay_step, default: 15000')
+#flags.DEFINE_integer('valid_step', 10000, 'valid_step, default: 10000')
+#flags.DEFINE_float('last_f1', 0.40, 'if valid_f1 > last_f1, save new model. default: 0.40')
 
 # 测试
 flags.DEFINE_integer('decay_step', 1000, 'decay_step, default: 1000')
 flags.DEFINE_integer('valid_step', 500, 'valid_step, default: 500')
-flags.DEFINE_float('last_f1', 0.10, 'if valid_f1 > last_f1, save new model. default: 0.10')
+flags.DEFINE_float('last_f1', 0.0010, 'if valid_f1 > last_f1, save new model. default: 0.0010')
 FLAGS = flags.FLAGS
 
 lr = FLAGS.lr
@@ -50,8 +51,8 @@ n_tr_batches = len(tr_batches)
 n_va_batches = len(va_batches)
 
 # 测试
-#n_tr_batches = 1000
-#n_va_batches = 50
+# n_tr_batches = 1000
+# n_va_batches = 50
 
 
 def get_batch(data_path, batch_id):
@@ -140,7 +141,7 @@ def main(_):
         os.makedirs(summary_path)
 
     print('1.Loading data...')
-    W_embedding = np.load(embedding_path)
+    W_embedding = np.load(embedding_path) # shape (411722, 256)
     print('training sample_num = %d' % n_tr_batches)
     print('valid sample_num = %d' % n_va_batches)
 
@@ -149,7 +150,7 @@ def main(_):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
-        model = network.BiGRU_CNN(W_embedding, settings)
+        model = network.TextCNN(W_embedding, settings)
         with tf.variable_scope('training_ops') as vs:
             learning_rate = tf.train.exponential_decay(FLAGS.lr, model.global_step, FLAGS.decay_step,
                                                    FLAGS.decay_rate, staircase=True)
@@ -166,6 +167,24 @@ def main(_):
                 optimizer2 = tf.train.AdamOptimizer(learning_rate=learning_rate)
                 train_op2 = optimizer2.apply_gradients(zip(grads2, tvars2),
                                                    global_step=model.global_step)
+            
+            # model.update_emas:
+            # [<tf.Operation 'cnn_text/conv-maxpool-2/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-3/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-4/ExponentialMovingAverage' type=NoOp>,
+            # <tf.Operation 'cnn_text/conv-maxpool-5/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'cnn_text/conv-maxpool-7/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-2/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-3/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-4/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-5/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'hcnn_content/conv-maxpool-7/ExponentialMovingAverage' type=NoOp>, 
+            # <tf.Operation 'fc-bn-layer/ExponentialMovingAverage' type=NoOp>]
+            #
+            #
+            # tf.group()返回的是个操作，而不是值. https://blog.csdn.net/LoseInVain/article/details/81703786
+            # <tf.Operation 'training_ops/group_deps' type=NoOp>
+
             update_op = tf.group(*model.update_emas)
             merged = tf.summary.merge_all()  # summary
             train_writer = tf.summary.FileWriter(summary_path + 'train', sess.graph)
@@ -186,15 +205,21 @@ def main(_):
 
         print('3.Begin training...')
         print('max_epoch=%d, max_max_epoch=%d' % (FLAGS.max_epoch, FLAGS.max_max_epoch))
-        train_op = train_op1
+        train_op = train_op2
         for epoch in range(FLAGS.max_max_epoch):
             global_step = sess.run(model.global_step)
             print('Global step %d, lr=%g' % (global_step, sess.run(learning_rate)))
             if epoch == FLAGS.max_epoch:  # update the embedding
                 train_op = train_op1
+
             train_fetches = [merged, model.loss, train_op, update_op]
             valid_fetches = [merged, model.loss]
             train_epoch(data_train_path, sess, model, train_fetches, valid_fetches, train_writer, test_writer)
+            
+            valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
+            print('Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (
+                sess.run(model.global_step), valid_cost, precision, recall, f1))            
+            
         # 最后再做一次验证
         valid_cost, precision, recall, f1 = valid_epoch(data_valid_path, sess, model)
         print('END.Global_step=%d: valid cost=%g; p=%g, r=%g, f1=%g' % (
