@@ -46,7 +46,7 @@ def test_char2id():
     print('Processing eval data.')
     df_eval = pd.read_csv('../raw_data/question_eval_set.txt', sep='\t',  usecols=[0, 1, 3],
                           names=['question_id', 'char_title', 'char_content'], dtype={'question_id': object})
-    print('test question number %d' % len(df_eval))
+    print('testid question number %d' % len(df_eval))
     # 没有 title 的问题用 content 来替换
     na_title_indexs = list()
     for i in range(len(df_eval)):
